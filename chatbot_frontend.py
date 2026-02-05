@@ -1,29 +1,32 @@
 import streamlit as st
+from langsmith import traceable
 from chatbot_backend import chatbot, retrive_all_thread
 from langchain_core.messages import HumanMessage, AIMessage
 import uuid
 from chatbot_backend import delete_thread
+import os 
 
+os.environ["LANGCHAIN_PROJECT"] = "Chatbot frontend"
 # =============================================================================
 # 1. HELPER FUNCTIONS
 # =============================================================================
-
+# @traceable(name='Generate threads')
 def generate_thread_id():
     """Generates a unique identifier for a new chat session."""
     return str(uuid.uuid4())
-
+# @traceable(name='reset chat')
 def reset_chat():
     """Clears current chat view and prepares a fresh thread ID."""
     thread_id = generate_thread_id()
     st.session_state['thread_id'] = thread_id
     st.session_state['msg_history'] = []
     # Note: thread_history is updated only after the first message is sent
-
+# @traceable(name='retrive_msgs')
 def retrive_msgs(thread_id):
     """Retrieves the full message history from LangGraph's checkpointer."""
     state = chatbot.get_state(config={"configurable": {"thread_id": thread_id}})
     return state.values.get('messages', [])
-
+# @traceable
 def retrive_title(thread_id):
     state = chatbot.get_state(config={"configurable": {"thread_id": thread_id}})
     # Retrieve the title we saved in Step 2
@@ -103,7 +106,9 @@ for thread_id in st.session_state['thread_history'][::-1]:
 # =============================================================================
 
 # Set current conversation config
-CONFIG = {"configurable": {"thread_id": st.session_state['thread_id']}}
+CONFIG = {"configurable": {"thread_id": st.session_state['thread_id']},
+          "metadata":{"thread_id":st.session_state['thread_id']},
+          "run_name": "chat_turn"}
 
 # Print whole chat history in the screen 
 
